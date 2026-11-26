@@ -1,0 +1,50 @@
+# Сборка rcp.exe на серверах GitHub при публикации релиза.
+#
+# Бинарник в релиз попадает только отсюда: из исходников того коммита, которому
+# назначен тег. Вручную собранные файлы в релизы не выкладываются.
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # приложить файл к релизу
+  id-token: write # аттестация сборки
+  attestations: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      # Действия зафиксированы по хешу коммита, а не по тегу: их содержимое
+      # не может измениться молча. Версии указаны рядом.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          toolchain: stable
+
+      - name: Build
+        run: cargo build --release --locked
+
+      # Движок обязан пройти самопроверку на чистой машине. Если процесс упадёт,
+      # шаг станет красным и файл до релиза не доедет.
+      - name: Selftest
+        run: .\target\release\rcp.exe --selftest | Out-Host
+
+      # Подписанная GitHub-ом справка «этот файл собран этим workflow из этого
+      # коммита»; проверяется командой
+      #   gh attestation verify rcp.exe -R <владелец>/RCP
+      # Шаг необязательный: не создалась справка — релиз всё равно получает файл.
+      - name: Attest
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        continue-on-error: true
+        with:
+          subject-path: target/release/rcp.exe
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$env:TAG" target/release/rcp.exe --clobber

@@ -1,0 +1,40 @@
+[package]
+name = "rcp"
+version = "0.1.0"
+edition = "2021"
+description = "Быстрая замена Ctrl+C/Ctrl+V в Проводнике Windows 11 с побайтовой проверкой"
+license = "MIT"
+authors = ["Dex"]
+
+[dependencies]
+rayon = "1.10"
+jwalk = "0.8"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time"] }
+tokio-util = { version = "0.7" }
+percent-encoding = "2.3"
+
+[dependencies.windows]
+version = "0.58"
+features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell",
+    "Win32_UI_Input_KeyboardAndMouse",
+    "Win32_System_Com",
+    "Win32_System_DataExchange",
+    "Win32_System_Memory",
+    "Win32_System_Ole",
+    "Win32_System_Threading",
+    "Win32_System_LibraryLoader",
+    "Win32_System_Console",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Win32_UI_Controls",
+    "Win32_UI_Shell_Common",
+]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
